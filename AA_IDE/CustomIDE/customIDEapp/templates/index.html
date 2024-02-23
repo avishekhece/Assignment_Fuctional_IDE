@@ -1,0 +1,82 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Problem Solving Dashboard</title>
+ <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+  <script>
+    function toggleHistory() {
+      var historyContainer = document.getElementById("history-container");
+      if (historyContainer.style.display === "block") {
+          historyContainer.style.display = "none";
+      } else {
+          historyContainer.style.display = "block";
+      }
+    }
+
+    function toggleIndividualID() {
+      window.open(
+          "https://www.programiz.com/python-programming/online-compiler/",
+          "_blank",
+          "width=600, height=400"
+      );
+    }
+
+    function toggleLeetCode() {
+      // Add code for toggling LeetCode functionality
+    }
+  </script>
+</head>
+<body>
+  <div class="header">
+    <div class="control-buttons">
+      <button class="history-button" onclick="toggleHistory()">History</button>
+      <button onclick="toggleIndividualID()">Individual ID</button>
+      <button onclick="toggleLeetCode()">LeetCode</button>
+    </div>
+    <label class="switch">
+      <input type="checkbox" id="redirectSwitch" />
+      <span class="slider round"></span>
+    </label>
+  </div>
+  <div class="container">
+    <div class="content">
+      <div class="box problem-statement">
+        <h2>Problem Statement</h2>
+        <p>
+          Title: Fibonacci series
+          Find the nth value of Fibonacci Series where 1st value is 0 and second value is 1
+          Note: need to initialize a variable called output to store the outputs, return the output variable only
+        </p>
+        <h2>Result</h2>
+        <div class="box result"></div>
+      </div>
+      <div class="box code-editor">
+        <h2>Code Editor</h2>
+        <textarea type="text" id="code" name="codeeraname"></textarea>
+        <button onclick="runCode()">Run Code</button>
+        <h2>Test Cases</h2>
+        <div id="output"></div>
+        <div class="test-case-buttons">
+          <button class="test-case-button" onclick="showTestCaseDetails(1)">Case 1</button>
+          <button class="test-case-button" onclick="showTestCaseDetails(2)">Case 2</button>
+          <button class="test-case-button" onclick="showTestCaseDetails(3)">Case 3</button>
+          <button class="add-test-case-button" onclick="showAddTestCaseForm()">Add Test Case</button>
+        </div>
+        <div class="test-case-details" id="test-case-details"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="history-container" class="history-container" style="display: none">
+    <div class="history-content">
+      <h2>History</h2>
+      <p>This is a hardcoded history statement for testing purposes.</p>
+      <p>You can add more history entries here.</p>
+    </div>
+  </div>
+  <script src="{% static '/script.js' %}"></script>
+</body>
+</html>
