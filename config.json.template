@@ -1,0 +1,6 @@
+{
+  "client_id": "YOUR_LINKEDIN_CLIENT_ID",
+  "client_secret": "YOUR_LINKEDIN_CLIENT_SECRET",
+  "access_token": "YOUR_LINKEDIN_ACCESS_TOKEN",
+  "redirect_uri": "http://localhost:8000/callback"
+}

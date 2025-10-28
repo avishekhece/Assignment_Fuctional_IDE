@@ -6,14 +6,19 @@ This agent generates and can post content about automation testing to attract cl
 import json
 import os
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Optional
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
 
 
 class LinkedInAgent:
     """AI Agent for creating LinkedIn posts about automation testing"""
     
-    def __init__(self):
+    def __init__(self, config_path: str = "/vercel/sandbox/config.json"):
         self.post_templates = self._load_templates()
+        self.config_path = config_path
+        self.config = self._load_config()
         self.topics = [
             "Test Automation Best Practices",
             "Selenium WebDriver Tips",
@@ -24,6 +29,17 @@ class LinkedInAgent:
             "Test Framework Design",
             "Quality Assurance Metrics"
         ]
+    
+    def _load_config(self) -> Dict:
+        """Load configuration from config file"""
+        if os.path.exists(self.config_path):
+            try:
+                with open(self.config_path, 'r') as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"Warning: Could not load config: {e}")
+                return {}
+        return {}
     
     def _load_templates(self) -> List[Dict]:
         """Load post templates for different types of content"""
@@ -197,6 +213,129 @@ Don't wait until you're behind.""",
             json.dump(post, f, indent=2, ensure_ascii=False)
         
         return filepath
+    
+    def get_linkedin_person_urn(self, access_token: str) -> Optional[str]:
+        """Get the LinkedIn person URN for the authenticated user"""
+        url = "https://api.linkedin.com/v2/userinfo"
+        
+        try:
+            req = Request(url)
+            req.add_header("Authorization", f"Bearer {access_token}")
+            req.add_header("Content-Type", "application/json")
+            
+            with urlopen(req) as response:
+                data = json.loads(response.read().decode())
+                return data.get("sub")  # This is the person URN
+        except Exception as e:
+            print(f"Error getting person URN: {e}")
+            return None
+    
+    def post_to_linkedin(self, post_content: str, access_token: str = None) -> Dict:
+        """
+        Post content to LinkedIn using the API
+        
+        Args:
+            post_content: The text content to post
+            access_token: LinkedIn access token (if not provided, uses config)
+        
+        Returns:
+            Dict with status and response data
+        """
+        if access_token is None:
+            access_token = self.config.get("access_token")
+        
+        if not access_token:
+            return {
+                "success": False,
+                "error": "No access token provided. Please authenticate first."
+            }
+        
+        # Get person URN
+        person_urn = self.get_linkedin_person_urn(access_token)
+        if not person_urn:
+            return {
+                "success": False,
+                "error": "Could not retrieve LinkedIn person URN"
+            }
+        
+        # LinkedIn UGC Post API endpoint
+        url = "https://api.linkedin.com/v2/ugcPosts"
+        
+        payload = {
+            "author": f"urn:li:person:{person_urn}",
+            "lifecycleState": "PUBLISHED",
+            "specificContent": {
+                "com.linkedin.ugc.ShareContent": {
+                    "shareCommentary": {
+                        "text": post_content
+                    },
+                    "shareMediaCategory": "NONE"
+                }
+            },
+            "visibility": {
+                "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
+            }
+        }
+        
+        try:
+            data = json.dumps(payload).encode('utf-8')
+            req = Request(url, data=data, method='POST')
+            req.add_header("Authorization", f"Bearer {access_token}")
+            req.add_header("Content-Type", "application/json")
+            req.add_header("X-Restli-Protocol-Version", "2.0.0")
+            
+            with urlopen(req) as response:
+                response_data = json.loads(response.read().decode())
+                return {
+                    "success": True,
+                    "post_id": response_data.get("id"),
+                    "message": "Post published successfully to LinkedIn!",
+                    "response": response_data
+                }
+        
+        except HTTPError as e:
+            error_msg = f"HTTP Error: {e.code}"
+            try:
+                error_detail = json.loads(e.read().decode())
+                error_msg += f" - {error_detail}"
+            except:
+                error_msg += f" - {e.reason}"
+            
+            return {
+                "success": False,
+                "error": error_msg
+            }
+        
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Error posting to LinkedIn: {str(e)}"
+            }
+    
+    def publish_post(self, post: Dict, access_token: str = None) -> Dict:
+        """
+        Publish a post to LinkedIn and update its status
+        
+        Args:
+            post: Post dictionary with content
+            access_token: LinkedIn access token
+        
+        Returns:
+            Updated post dictionary with publish status
+        """
+        result = self.post_to_linkedin(post["content"], access_token)
+        
+        if result["success"]:
+            post["status"] = "published"
+            post["published_at"] = datetime.now().isoformat()
+            post["linkedin_post_id"] = result.get("post_id")
+            print(f"\n✅ {result['message']}")
+        else:
+            post["status"] = "failed"
+            post["error"] = result["error"]
+            print(f"\n❌ Failed to publish: {result['error']}")
+        
+        return post
     
     def display_post(self, post: Dict) -> None:
         """Display the post in a formatted way"""
